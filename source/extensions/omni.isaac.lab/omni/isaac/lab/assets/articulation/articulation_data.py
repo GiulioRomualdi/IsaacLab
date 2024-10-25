@@ -132,6 +132,9 @@ class ArticulationData:
     default_joint_limits: torch.Tensor = None
     """Default joint limits of all joints. Shape is (num_instances, num_joints, 2)."""
 
+    default_joint_max_velocity: torch.Tensor = None
+    """Default joint maximum velocity of all joints. Shape is (num_instances, num_joints)."""
+
     default_fixed_tendon_stiffness: torch.Tensor = None
     """Default tendon stiffness of all tendons. Shape is (num_instances, num_fixed_tendons)."""
 
@@ -219,6 +222,9 @@ class ArticulationData:
 
     joint_limits: torch.Tensor = None
     """Joint limits provided to simulation. Shape is (num_instances, num_joints, 2)."""
+
+    joint_max_velocity: torch.Tensor = None
+    """Joint maximum velocity provided to simulation. Shape is (num_instances, num_joints)."""
 
     ##
     # Fixed tendon properties.

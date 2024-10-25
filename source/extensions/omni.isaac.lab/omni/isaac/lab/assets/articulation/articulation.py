@@ -549,6 +549,42 @@ class Articulation(AssetBase):
         # set into simulation
         self.root_physx_view.set_dof_limits(self._data.joint_limits.cpu(), indices=physx_env_ids.cpu())
 
+    def write_joint_max_velocity_to_sim(
+        self,
+        limits: torch.Tensor | float,
+        joint_ids: Sequence[int] | slice | None = None,
+        env_ids: Sequence[int] | None = None,
+    ):
+        """Write joint limits into the simulation.
+
+        Args:
+            limits: Joint velocity limits. Shape is (len(env_ids), len(joint_ids), 2).
+            joint_ids: The joint indices to set the limits for. Defaults to None (all joints).
+            env_ids: The environment indices to set the limits for. Defaults to None (all environments).
+        """
+        # note: This function isn't setting the values for actuator models. (#128)
+        # resolve indices
+        physx_env_ids = env_ids
+        if env_ids is None:
+            env_ids = slice(None)
+            physx_env_ids = self._ALL_INDICES
+        if joint_ids is None:
+            joint_ids = slice(None)
+        # broadcast env_ids if needed to allow double indexing
+        if env_ids != slice(None) and joint_ids != slice(None):
+            env_ids = env_ids[:, None]
+        # set into internal buffers
+        self._data.joint_max_velocity[env_ids, joint_ids] = limits
+        # update default joint pos to stay within the new limits
+        if torch.any(torch.abs(self._data.default_joint_vel) > limits):
+            self._data.default_joint_pos = torch.clamp(self._data.default_joint_vel, -limits, limits)
+            omni.log.warn(
+                "Some default joint velocities are outside of the range of the new joint limits. Default joint velocities"
+                " will be clamped to be within the new joint limits."
+            )
+        # set into simulation
+        self.root_physx_view.set_dof_max_velocities(self._data.joint_max_velocity.cpu(), indices=physx_env_ids.cpu())
+
     """
     Operations - Setters.
     """
@@ -980,6 +1016,7 @@ class Articulation(AssetBase):
         self._data.joint_armature = torch.zeros_like(self._data.default_joint_pos)
         self._data.joint_friction = torch.zeros_like(self._data.default_joint_pos)
         self._data.joint_limits = torch.zeros(self.num_instances, self.num_joints, 2, device=self.device)
+        self._data.joint_max_velocity = torch.zeros_like(self._data.default_joint_pos)
 
         # -- joint commands (explicit)
         self._data.computed_torque = torch.zeros_like(self._data.default_joint_pos)
@@ -1015,6 +1052,7 @@ class Articulation(AssetBase):
         self._data.default_joint_armature = torch.zeros(self.num_instances, self.num_joints, device=self.device)
         self._data.default_joint_friction = torch.zeros(self.num_instances, self.num_joints, device=self.device)
         self._data.default_joint_limits = torch.zeros(self.num_instances, self.num_joints, 2, device=self.device)
+        self._data.default_joint_max_velocity = torch.zeros(self.num_instances, self.num_joints, device=self.device)
 
         # -- initialize default buffers related to fixed tendon properties
         if self.num_fixed_tendons > 0:
@@ -1079,6 +1117,10 @@ class Articulation(AssetBase):
         # -- joint limits
         self._data.default_joint_limits = self.root_physx_view.get_dof_limits().to(device=self.device).clone()
         self._data.joint_limits = self._data.default_joint_limits.clone()
+
+        # -- joint max velocity
+        self._data.default_joint_max_velocity = self.root_physx_view.get_dof_max_velocities().to(device=self.device).clone()
+        self._data.joint_max_velocity = self._data.default_joint_max_velocity.clone()
 
     """
     Internal simulation callbacks.

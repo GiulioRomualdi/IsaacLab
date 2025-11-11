@@ -91,9 +91,21 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     )
     """The configuration for the current velocity visualization marker. Defaults to BLUE_ARROW_X_MARKER_CFG."""
 
+    goal_ang_vel_visualizer_cfg: VisualizationMarkersCfg = GREEN_ARROW_X_MARKER_CFG.replace(
+        prim_path="/Visuals/Command/angular_velocity_goal"
+    )
+    """The configuration for the goal angular velocity visualization marker."""
+
+    current_ang_vel_visualizer_cfg: VisualizationMarkersCfg = BLUE_ARROW_X_MARKER_CFG.replace(
+        prim_path="/Visuals/Command/angular_velocity_current"
+    )
+    """The configuration for the current angular velocity visualization marker."""
+
     # Set the scale of the visualization markers to (0.5, 0.5, 0.5)
     goal_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
     current_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
+    goal_ang_vel_visualizer_cfg.markers["arrow"].scale = (0.35, 0.35, 0.35)
+    current_ang_vel_visualizer_cfg.markers["arrow"].scale = (0.35, 0.35, 0.35)
 
 
 @configclass
